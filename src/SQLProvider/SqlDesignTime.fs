@@ -10,6 +10,8 @@ open FSharp.Data.Sql.Transactions
 open FSharp.Data.Sql.Schema
 open FSharp.Data.Sql.Runtime
 open FSharp.Data.Sql.Common
+open Newtonsoft.Json
+open System.IO
 
 type internal SqlRuntimeInfo (config : TypeProviderConfig) =
     let runtimeAssembly = Assembly.LoadFrom(config.RuntimeAssembly)
@@ -255,6 +257,16 @@ type SqlTypeProvider(config: TypeProviderConfig) as this =
                         yield prop ]
                 attProps @ relProps)
         
+        let dir = Path.GetDirectoryName(sqlRuntimeInfo.RuntimeAssembly.Location)    
+        let hash = dbVendor.ToString() + connnectionString.GetHashCode().ToString()
+        let fileTbl = Path.Combine(dir, "sqlProviderTablesCache" + hash + ".json")
+        let fileCols = Path.Combine(dir, "sqlProviderTableColumnsCache" + hash + ".json")
+        do 
+            //async {                
+                File.WriteAllText(fileTbl, JsonConvert.SerializeObject(tables.Force(), Formatting.Indented))
+                File.WriteAllText(fileCols, JsonConvert.SerializeObject(tableColumns.Force(), Formatting.Indented))
+            //} |> Async.Start
+
         let generateSprocMethod (container:ProvidedTypeDefinition) (con:IDbConnection) (sproc:CompileTimeSprocDefinition) =             
             let rt = ProvidedTypeDefinition(SchemaProjections.buildSprocName(sproc.Name.DbName),None, HideObjectMethods = true)
             let resultType = ProvidedTypeDefinition("Result",None, HideObjectMethods = true)
@@ -615,6 +627,7 @@ type SqlTypeProvider(config: TypeProviderConfig) as this =
 
         DesignTimeCache.cache.GetOrAdd(arguments, fun args ->
             let types = createTypes args
+
             
             // This is not a perfect cache-invalidation solution, it can remove a valid item from
             // cache after the time-out, causing one extra hit, but this is only a design-time cache 
@@ -628,7 +641,7 @@ type SqlTypeProvider(config: TypeProviderConfig) as this =
         )
 
     do paramSqlType.AddXmlDoc helpText               
-    
+           
     // add them to the namespace    
     do this.AddNamespace(ns, [paramSqlType])
                             
