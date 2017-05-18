@@ -82,11 +82,11 @@ Target "AssemblyInfo" (fun _ ->
 Target "RestorePackages" RestorePackages
 
 Target "Clean" (fun _ ->
-    CleanDirs ["bin"; "temp"]
+    DeleteDirs ["bin"; "temp"]
 )
 
 Target "CleanDocs" (fun _ ->
-    CleanDirs ["docs/output"]
+    DeleteDirs ["docs/output"]
 )
 
 // --------------------------------------------------------------------------------------
@@ -114,6 +114,7 @@ Target "RunTests" (fun _ ->
 // Build a NuGet package
 
 Target "NuGet" (fun _ ->
+    // Before release, set your API-key as instructed in the bottom of page https://www.nuget.org/account
     
     CopyFiles @"temp/lib" !!"bin/**/FSharp.Data.SqlProvider.dll"
 
@@ -135,6 +136,7 @@ Target "NuGet" (fun _ ->
 
     CleanDir "Temp"
     Branches.tag "" release.NugetVersion
+    // push manually: nuget.exe push bin\SQLProvider.1.*.nupkg -Source https://www.nuget.org/api/v2/package
     //Branches.pushTag "" "upstream" release.NugetVersion
 )
 
